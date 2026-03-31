@@ -54,77 +54,61 @@ class Graph:
 # ── Task 1: Build the Graph ───────────────────────────────────────
 
 def build_lab_graph():
-    """Build and return the lab graph.
-
-    The graph looks like this:
-
-        A
-       / \\
-      B   C
-      |   |
-      D   E
-       \\ /
-        F
-
-    Edges: A-B, A-C, B-D, C-E, D-F, E-F
-    """
     g = Graph()
 
-    # TODO: Add all six nodes (A through F)
-    # TODO: Add all six edges
+    for node in ["A", "B", "C", "D", "E", "F"]:
+        g.add_node(node)
+
+    g.add_edge("A", "B")
+    g.add_edge("A", "C")
+    g.add_edge("B", "D")
+    g.add_edge("C", "E")
+    g.add_edge("D", "F")
+    g.add_edge("E", "F")
 
     return g
 
 
 # ── Task 2: Breadth-First Search ──────────────────────────────────
-
 def bfs(graph, start):
-    """Traverse the graph in breadth-first order starting from `start`.
-
-    Returns a list of node labels in the order they were visited.
-    """
     visited = set()
     order = []
     frontier = deque()
 
-    # TODO: Add `start` to the frontier and mark it as visited
+    frontier.append(start)
+    visited.add(start)
 
     while frontier:
-        # TODO: Dequeue the next node from the front of the queue
-
-        # TODO: Add the current node to the traversal order
+        current = frontier.popleft()
+        order.append(current)
 
         for neighbor in graph.get_neighbors(current):
-            pass
-            # TODO: If this neighbor hasn't been visited,
-            #        mark it as visited and add it to the frontier
+            if neighbor not in visited:
+                visited.add(neighbor)
+                frontier.append(neighbor)
 
     return order
-
 
 # ── Task 3: Depth-First Search ────────────────────────────────────
 
 def dfs(graph, start):
-    """Traverse the graph in depth-first order starting from `start`.
-
-    Returns a list of node labels in the order they were visited.
-    Uses an iterative approach with a stack (not recursion).
-    """
     visited = set()
     order = []
     stack = []
 
-    # TODO: Add `start` to the stack
+    stack.append(start)
 
     while stack:
-        # TODO: Pop the next node from the top of the stack
+        current = stack.pop()
 
-        # TODO: If `current` has already been visited, skip it (continue).
-        #        Otherwise, mark it as visited and add it to the order.
+        if current in visited:
+            continue
+
+        visited.add(current)
+        order.append(current)
 
         for neighbor in graph.get_neighbors(current):
-            pass
-            # TODO: Add the neighbor to the stack
+            stack.append(neighbor)
 
     return order
 
@@ -132,11 +116,6 @@ def dfs(graph, start):
 # ── Task 4: Find Path ────────────────────────────────────────────
 
 def find_path(graph, start, goal):
-    """Find the shortest path from `start` to `goal` using BFS.
-
-    Returns a list of node labels representing the path (including both
-    start and goal). Returns an empty list if no path exists.
-    """
     if start == goal:
         return [start]
 
@@ -144,24 +123,24 @@ def find_path(graph, start, goal):
     frontier = deque()
     parent = {}
 
-    # TODO: Add `start` to the frontier, mark it as visited.
-    #        The start node has no parent — you don't need to add it
-    #        to the parent map.
+    frontier.append(start)
+    visited.add(start)
 
     while frontier:
-        # TODO: Dequeue the next node
+        current = frontier.popleft()
 
-        # TODO: Check if `current` is the goal. If yes:
-        #        - Trace back through `parent` from goal to start
-        #        - Reverse the path and return it
-        #        (Hint: build a list by following parent[node] until
-        #         you reach start, then reverse)
+        if current == goal:
+            path = []
+            while current in parent:
+                path.append(current)
+                current = parent[current]
+            path.append(start)
+            return path[::-1]
 
         for neighbor in graph.get_neighbors(current):
-            pass
-            # TODO: If the neighbor hasn't been visited:
-            #        - Mark it as visited
-            #        - Record its parent: parent[neighbor] = current
-            #        - Add it to the frontier
+            if neighbor not in visited:
+                visited.add(neighbor)
+                parent[neighbor] = current
+                frontier.append(neighbor)
 
-    return []  # No path found
+    return []  
