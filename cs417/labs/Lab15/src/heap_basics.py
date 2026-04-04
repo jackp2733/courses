@@ -11,57 +11,47 @@ import heapq
 
 
 def push_and_pop(values):
-    """Push all values onto a heap, then pop them all off.
+    h = []
+    for v in values:
+        heapq.heappush(h, v)
 
-    Args:
-        values: A list of numbers.
+    result = []
+    while h:
+        result.append(heapq.heappop(h))
 
-    Returns:
-        A list of the same numbers in ascending order.
-    """
-    # TODO: Create a heap, push each value, pop them all off
-    pass
+    return result
 
 
 def heapify_and_peek(values):
-    """Turn a list into a heap and return the smallest value.
-
-    Args:
-        values: A list of numbers.
-
-    Returns:
-        The smallest value (without removing it from the heap).
-    """
-    # TODO: Use heapq.heapify(), then peek with h[0]
-    pass
+    h = list(values)
+    heapq.heapify(h)
+    return h[0]
 
 
 def top_k_smallest(values, k):
-    """Return the k smallest values in ascending order.
+    h = list(values)
+    heapq.heapify(h)
 
-    Args:
-        values: A list of numbers.
-        k: How many smallest values to return.
+    result = []
+    for _ in range(k):
+        result.append(heapq.heappop(h))
 
-    Returns:
-        A list of the k smallest values, sorted ascending.
-    """
-    # TODO: Use heapq to find the k smallest values
-    pass
+    return result
 
 
 # ── Task 2: Tuple Priorities ────────────────────────────────────────
 
 
 def sort_by_priority(tasks):
-    """Sort tasks by priority, maintaining FIFO order for equal priorities.
+    h = []
+    count = 0
 
-    Args:
-        tasks: A list of (priority, description) tuples.
+    for priority, desc in tasks:
+        heapq.heappush(h, (priority, count, desc))
+        count += 1
 
-    Returns:
-        A list of description strings in priority order.
-        Same-priority tasks appear in their original order.
-    """
-    # TODO: Use a heap with a sequence counter as tiebreaker
-    pass
+    result = []
+    while h:
+        result.append(heapq.heappop(h)[2])
+
+    return result
