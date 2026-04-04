@@ -9,18 +9,6 @@ from bst import BST
 
 
 def build_sample_tree():
-    """Build the sample BST from the lab diagram.
-
-    Inserts: 15, 9, 21, 4, 12, 18, 25, 2, 7
-
-             15
-            /  \\
-           9    21
-          / \\   / \\
-         4  12 18  25
-        / \\
-       2   7
-    """
     tree = BST()
     for value in [15, 9, 21, 4, 12, 18, 25, 2, 7]:
         tree.insert(value)
@@ -30,75 +18,62 @@ def build_sample_tree():
 # ── Task 1: Explore the BST ─────────────────────────────────────────
 
 def explore():
-    """Explore the provided BST module.
+    tree = build_sample_tree()
 
-    TODO:
-    - Build the sample tree using build_sample_tree()
-    - Print the tree using its display() method
-    - Search for the values 12, 20, and 25
-      - For each, print whether it was found
-        e.g., "Search 12: Found" or "Search 20: Not found"
-    - Print the total number of nodes using the size() method
-      e.g., "Tree has 9 nodes"
-    """
-    pass  # TODO: implement this
+    tree.display()
+
+    for val in [12, 20, 25]:
+        if tree.search(val):
+            print(f"Search {val}: Found")
+        else:
+            print(f"Search {val}: Not found")
+
+    print(f"Tree has {tree.size()} nodes")
 
 
-# ── Task 2: Inorder Traversal (Left → Self → Right) ─────────────────
+# ── Task 2: Inorder Traversal ───────────────────────────────────────
 
 def inorder(node):
-    """Return a list of values from an inorder traversal.
-
-    Visit the left subtree, then the current node, then the right subtree.
-    Returns an empty list if node is None.
-
-    TODO: implement this
-    """
-    pass  # TODO: implement this
+    if node is None:
+        return []
+    return inorder(node.left) + [node.value] + inorder(node.right)
 
 
-# ── Task 3: Preorder Traversal (Self → Left → Right) ────────────────
+# ── Task 3: Preorder Traversal ──────────────────────────────────────
 
 def preorder(node):
-    """Return a list of values from a preorder traversal.
-
-    Visit the current node, then the left subtree, then the right subtree.
-    Returns an empty list if node is None.
-
-    TODO: implement this
-    """
-    pass  # TODO: implement this
+    if node is None:
+        return []
+    return [node.value] + preorder(node.left) + preorder(node.right)
 
 
-# ── Task 4: Postorder Traversal (Left → Right → Self) ───────────────
+# ── Task 4: Postorder Traversal ─────────────────────────────────────
 
 def postorder(node):
-    """Return a list of values from a postorder traversal.
-
-    Visit the left subtree, then the right subtree, then the current node.
-    Returns an empty list if node is None.
-
-    TODO: implement this
-    """
-    pass  # TODO: implement this
+    if node is None:
+        return []
+    return postorder(node.left) + postorder(node.right) + [node.value]
 
 
-# ── Task 5: Level-Order Traversal (BFS) ─────────────────────────────
+# ── Task 5: Level-Order Traversal ───────────────────────────────────
 
 def levelorder(node):
-    """Return a list of values from a level-order (BFS) traversal.
+    if node is None:
+        return []
 
-    Visit nodes level by level, from top to bottom, left to right.
-    Uses a queue — not recursion.
-    Returns an empty list if node is None.
+    result = []
+    queue = [node]
 
-    Hint: collections.deque works great as a queue.
-      - append() adds to the back
-      - popleft() removes from the front
+    while queue:
+        current = queue.pop(0)
+        result.append(current.value)
 
-    TODO: implement this
-    """
-    pass  # TODO: implement this
+        if current.left:
+            queue.append(current.left)
+        if current.right:
+            queue.append(current.right)
+
+    return result
 
 
 # ── Main ─────────────────────────────────────────────────────────────
