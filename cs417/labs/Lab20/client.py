@@ -9,14 +9,15 @@ import time
 
 
 def submit(student: str, lab: int, base_url: str = "http://localhost:8000") -> dict:
-    """Task 1: Submit a grading request and return the result.
-
-    POST to {base_url}/grade with {"student": student, "lab": lab}.
-    Raise RuntimeError if the status code is not 200.
-    Return the response as a dictionary.
-    """
     # TODO: Implement
-    pass
+    url = f"{base_url}/grade"
+
+    response = requests.post(url, json={"student": student, "lab": lab})
+
+    if response.status_code != 200:
+        raise RuntimeError("request failed")
+
+    return response.json()
 
 
 def submit_with_retry(
@@ -26,16 +27,24 @@ def submit_with_retry(
     timeout: float = 2,
     max_retries: int = 3,
 ) -> dict:
-    """Task 2: Submit with timeout and retry logic.
-
-    POST to /grade with {"student": student, "lab": lab, "slow": True}.
-    Use the timeout parameter in requests.post().
-    On requests.exceptions.Timeout, retry up to max_retries times.
-    Raise RuntimeError("all retries failed") if every attempt times out.
-    Return the response dictionary on success.
-    """
     # TODO: Implement
-    pass
+    url = f"{base_url}/grade"
+
+    for _ in range(max_retries):
+        try:
+            response = requests.post(
+                url,
+                json={"student": student, "lab": lab, "slow": True},
+                timeout=timeout,
+            )
+
+            if response.status_code == 200:
+                return response.json()
+
+        except requests.exceptions.Timeout:
+            continue
+
+    raise RuntimeError("all retries failed")
 
 
 def submit_idempotent(
@@ -45,13 +54,30 @@ def submit_idempotent(
     timeout: float = 2,
     max_retries: int = 3,
 ) -> dict:
-    """Task 3: Submit with an idempotency key.
-
-    Same as submit_with_retry, but include a stable submission_id
-    in the request body: f"{student}-lab{lab}"
-    """
     # TODO: Implement
-    pass
+    url = f"{base_url}/grade"
+    submission_id = f"{student}-lab{lab}"
+
+    for _ in range(max_retries):
+        try:
+            response = requests.post(
+                url,
+                json={
+                    "student": student,
+                    "lab": lab,
+                    "slow": True,
+                    "submission_id": submission_id,
+                },
+                timeout=timeout,
+            )
+
+            if response.status_code == 200:
+                return response.json()
+
+        except requests.exceptions.Timeout:
+            continue
+
+    raise RuntimeError("all retries failed")
 
 
 def submit_async(
@@ -61,16 +87,29 @@ def submit_async(
     poll_interval: float = 0.5,
     max_polls: int = 20,
 ) -> dict:
-    """Task 4: Async submission with polling.
-
-    POST to /grade-async with student, lab, and a stable submission_id.
-    Expect a 202 response with a job_id.
-    Poll GET /grade-jobs/{job_id} every poll_interval seconds.
-    When status is "complete", return the result dictionary.
-    Raise RuntimeError("polling timed out") if max_polls is exceeded.
-    """
     # TODO: Implement
-    pass
+    submission_id = f"{student}-lab{lab}"
+
+    response = requests.post(
+        f"{base_url}/grade-async",
+        json={"student": student, "lab": lab, "submission_id": submission_id},
+    )
+
+    if response.status_code != 202:
+        raise RuntimeError("failed to start async job")
+
+    job_id = response.json()["job_id"]
+
+    for _ in range(max_polls):
+        time.sleep(poll_interval)
+
+        res = requests.get(f"{base_url}/grade-jobs/{job_id}")
+        data = res.json()
+
+        if data["status"] == "complete":
+            return data["result"]
+
+    raise RuntimeError("polling timed out")
 
 
 # ---------------------------------------------------------------------------
@@ -79,18 +118,30 @@ def submit_async(
 
 
 class SmartClient:
-    """A client that tries sync first and falls back to async.
-
-    Usage:
-        client = SmartClient(base_url="http://localhost:8000")
-        result = client.submit("alice", 19)
-    """
-
     def __init__(self, base_url: str = "http://localhost:8000", timeout: float = 2):
         # TODO: Implement
-        pass
+        self.base_url = base_url
+        self.timeout = timeout
 
     def submit(self, student: str, lab: int) -> dict:
-        """Submit a grading request. Tries sync first, falls back to async."""
         # TODO: Implement
-        pass
+        submission_id = f"{student}-lab{lab}"
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/grade",
+                json={
+                    "student": student,
+                    "lab": lab,
+                    "submission_id": submission_id,
+                },
+                timeout=self.timeout,
+            )
+
+            if response.status_code == 200:
+                return response.json()
+
+        except requests.exceptions.Timeout:
+            pass
+
+        return submit_async(student, lab, self.base_url)
