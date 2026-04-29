@@ -101,20 +101,13 @@ Exactly one row matches. Read its `UID` field.
 
 **Digit 1** is the **last digit of that UID**.
 
-A working starting point (do not run blindly — read it first):
+Building blocks you'll need:
 
-```powershell
-Import-Csv .\windows_events.csv |
-    Where-Object {
-        $_.EventType -eq 'RoleChange' -and
-        $_.OldRole   -eq 'student'    -and
-        $_.NewRole   -eq 'admin'      -and
-        $_.Timestamp -ge '2026-04-28T00:00:00Z' -and
-        $_.Timestamp -le '2026-04-28T06:00:00Z'
-    }
-```
+- `Import-Csv .\windows_events.csv` parses the file into objects whose properties match the CSV header.
+- `Where-Object { ... }` filters that pipeline. Inside the block, `$_` is the current row; `$_.FieldName` reads a field.
+- ISO-8601 timestamps sort lexically as strings, so `-ge` and `-le` comparisons against the timestamp string work directly — no datetime parsing required.
 
-> **Running PowerShell from Bash?** If you invoke this with `pwsh -Command "..."` from a Bash shell, wrap the script in **single quotes** so Bash doesn't try to expand `$_`. Either run from a PowerShell prompt directly, or do `pwsh -Command '...'`.
+Compose the four conditions from the task list above into a single `Where-Object` block joined with `-and`.
 
 Why PowerShell? CSV is a *table of records*. PowerShell's object pipeline lets you filter by named field without writing a parser. `Import-Csv` gives you objects; `Where-Object` filters them. Try doing this in plain `grep` and you'll quickly write a half-baked CSV parser instead.
 
@@ -145,14 +138,16 @@ Each line of `ids.log` looks like:
 
 (Example: if the answer were `10.20.30.41`, the last octet is `41` and the last digit is `1`.)
 
-A regex/grep approach: extract `src=` and `port=` columns, filter to the four ports, then for each src count distinct ports it hit, and report the one that hit all four. One way:
+This is a set-cover problem: find the IP whose set of touched target ports is exactly `{22, 80, 443, 3389}`.
 
-```bash
-grep -oE 'src=[0-9.]+ .*port=(22|80|443|3389) ' ids.log \
-  | sort -u
-```
+A workable pipeline shape:
 
-That gives you `(src, port)` pairs touching the target ports. Then group by `src` and find the one with all four. Pick whatever combination of `grep | sed | awk | sort | uniq` you prefer — the puzzle is the *pattern matching*, not the exact pipeline.
+1. Extract `(src, port)` pairs from each line.
+2. Filter down to lines whose port is in the target set.
+3. Dedupe so each `(src, port)` pair appears once.
+4. Count distinct ports per `src`. The IP with count `4` is your answer.
+
+Tools that fit each step: `grep -oE` for extraction, `sort -u` for dedupe, `awk` or `cut | uniq -c` for the per-IP counting. Pick whatever combination of `grep | sed | awk | sort | uniq` feels natural — the puzzle is the *pattern matching*, not the exact pipeline.
 
 Why regex? The data is a free-form text log with key=value fields. Regex is built for "extract these substrings from arbitrary lines."
 
@@ -185,22 +180,16 @@ Each line of `door_access.log` looks like:
 
 **Digit 3** is the **last digit of that door ID**.
 
-A working starting point:
+Why awk? You need to **group rows by a key** (door) and **detect a sequence pattern** within each group. That's awk's sweet spot: associative arrays keyed by a field, accumulating state across many lines. `grep` can match a single line; awk can build per-key state across the whole input.
 
-```bash
-awk 'match($0, /door=([0-9]+).*action=([A-Z]+)/, a) {
-        seq[a[1]] = seq[a[1]] (a[2] == "DENIED" ? "D" : "G")
-     }
-     END {
-        for (d in seq) if (index(seq[d], "DDDG") > 0) print d
-     }' door_access.log
-```
+Building blocks:
 
-The log is already sorted by timestamp, so the order awk encounters lines for door X *is* the chronological order for door X.
+- For each line, extract the door ID and the action. Field-extraction options: gawk's `match($0, /pattern/, arr)` form (captures into `arr[1]`, `arr[2]`, ...), `split`/`substr`, or setting `FS` and pulling from `$N`.
+- Maintain an associative array keyed by door, accumulating each action as you scan. A compact encoding (e.g. one character per action) makes the final pattern check easy.
+- The log is already sorted by timestamp, so the order awk sees lines for door X *is* the chronological order for door X. You don't need to sort.
+- In an `END { ... }` block, walk the array and print the door whose accumulated string matches the pattern from the task description.
 
-Why awk? You need to **group rows by a key** (door) and **detect a sequence pattern** within each group. That's awk's sweet spot: associative arrays keyed by a field, accumulating state across the input. `grep` can match a single line; awk can build per-key state across many lines.
-
-> Note: this approach uses gawk's `match(line, regex, arr)` form to capture groups. If your `awk` doesn't support that, use gawk explicitly: `gawk '...'`. Or do the field extraction with `split` / substring tricks instead.
+> Note: gawk's `match(line, regex, arr)` form is gawk-specific. If your `awk` doesn't support it, use `gawk` explicitly or fall back to `split`/`substr`.
 
 ---
 
@@ -212,20 +201,13 @@ Why awk? You need to **group rows by a key** (door) and **detect a sequence patt
 
 **Digit 4** is the **last digit of `wave_size`**.
 
-A working starting point:
+Building blocks:
 
-```lua
--- save as solve.lua, run with: lua solve.lua
-local cfg = dofile("zombie_config.lua")
-print(cfg.wave_size)
-print(cfg.wave_size % 10)
-```
+- Lua's `dofile("zombie_config.lua")` evaluates the file as Lua source and returns whatever its top-level `return` statement produces — in this case, a table.
+- Read the field you want off that returned table. `wave_size` is at the **top level** of the table, not nested inside any sub-table.
+- The last digit is just the value modulo 10.
 
-Or one-liner:
-
-```bash
-lua -e 'local c = dofile("zombie_config.lua"); print(c.wave_size % 10)'
-```
+You can do this from a `solve.lua` script you write yourself, or as a `lua -e '...'` one-liner — either is fine.
 
 Why Lua? The file is **valid Lua source** — it returns a table. You *could* try to grep for `wave_size = NN` and parse it textually, but the moment the config gains conditionals, comments, or computed values, that breaks. Loading it as code lets the language's evaluator do the parsing.
 
