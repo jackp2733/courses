@@ -89,11 +89,11 @@ def test_starter_runs():
 #
 # def test_json_parsing_no_io():
 #     """Same shape, JSON input, no files, no prints."""
-#     payload = [
+#     payload = json.dumps([
 #         {"date": "2026-04-01", "vendor": "Starbucks", "amount": 4.85, "note": ""},
 #         {"date": "2026-04-01", "vendor": "Shell",     "amount": 52.30, "note": ""},
-#     ]
-#     totals = build_report(CSVParser.__class__, ...)  # YOU PICK
+#     ])
+#     totals = build_report(JSONParser(), Categorizer(_categories()), payload)
 #     assert totals["food"] == 4.85
 #     assert totals["gas"] == 52.30
 #

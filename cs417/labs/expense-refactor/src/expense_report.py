@@ -22,12 +22,14 @@ def main():
         "STARBUCKS": "food",
         "DUNKIN": "food",
         "WHOLEFOODS": "food",
+        "WHOLE FOODS": "food",
         "SHELL": "gas",
         "EXXON": "gas",
         "AMAZON": "shopping",
         "TARGET": "shopping",
         "NETFLIX": "entertainment",
         "SPOTIFY": "entertainment",
+        "HARDWARE": "home",
     }
 
     totals = {}
