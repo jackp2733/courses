@@ -23,86 +23,106 @@ from pathlib import Path
 
 
 # -----------------------------------------------------------------------------
-# TODO Part 1 — fill these in. (See README "Part 1 — Add JSON support".)
+# Part 1 — Parsing
 # -----------------------------------------------------------------------------
 
+def _make_row(date, vendor, amount, note):
+    """Shared helper to avoid duplication between CSV + JSON."""
+    try:
+        return {
+            "date": date,
+            "vendor": vendor,
+            "amount": float(amount),  # ✅ FIX: always convert to float
+            "note": note,
+        }
+    except Exception:
+        return None
+
+
 def parse_csv(text: str) -> list[dict]:
-    """Return a list of row dicts: {"date", "vendor", "amount", "note"}.
-    Skip lines that don't have 4 comma-separated fields.
-    """
-    raise NotImplementedError("Part 1: implement parse_csv")
+    rows = []
+    lines = text.strip().splitlines()
+
+    for line in lines[1:]:  # skip header
+        parts = line.split(",")
+        if len(parts) != 4:
+            continue
+
+        row = _make_row(*parts)
+        if row:
+            rows.append(row)
+
+    return rows
 
 
 def parse_json(text: str) -> list[dict]:
-    """Return a list of row dicts: {"date", "vendor", "amount", "note"}.
-    Input is JSON text — same fields as the CSV, just JSON-shaped.
-    """
-    raise NotImplementedError("Part 1: implement parse_json")
+    rows = []
+    try:
+        data = json.loads(text)
+    except Exception:
+        return rows
+
+    for item in data:
+        try:
+            row = _make_row(
+                item["date"],
+                item["vendor"],
+                item["amount"],  # will be cast to float in helper
+                item.get("note", ""),
+            )
+            if row:
+                rows.append(row)
+        except Exception:
+            continue
+
+    return rows
 
 
 # -----------------------------------------------------------------------------
-# TODO Part 2 — fill this in. (See README "Part 2 — Configurable categories".)
+# Part 2 — Categorizer
 # -----------------------------------------------------------------------------
 
 def categorize(vendor: str, categories: dict) -> str:
-    """Return the category for `vendor` based on `categories`.
+    vendor_upper = vendor.upper()
 
-    `categories` maps {category_name: [keyword, keyword, ...]}.
-    A vendor matches a category if any of the keywords appears in the
-    vendor name (case-insensitive). Return "other" if no category matches.
-    """
-    raise NotImplementedError("Part 2: implement categorize")
+    for category, keywords in categories.items():
+        for keyword in keywords:
+            if keyword in vendor_upper:
+                return category
+
+    return "other"
 
 
 # -----------------------------------------------------------------------------
-# TODO Part 3 — fill this in. (See README "Part 3 — A pure pipeline".)
+# Part 3 — Pure pipeline
 # -----------------------------------------------------------------------------
 
 def build_report(rows: list[dict], categories: dict) -> dict:
-    """Return {category_name: total_amount} for a list of parsed rows.
+    totals = {}
 
-    Pure: must NOT open files, read stdin, or print anything.
-    """
-    raise NotImplementedError("Part 3: implement build_report")
+    for row in rows:
+        cat = categorize(row["vendor"], categories)
+        totals[cat] = totals.get(cat, 0.0) + row["amount"]  # ✅ now always float
+
+    return totals
 
 
 # -----------------------------------------------------------------------------
-# main() — I/O lives here. Once Parts 1-3 are done, this should shrink to
-# just the I/O glue: read files, call parse_*, call build_report, print.
-# Right now it has everything inline.
+# main() — I/O shell
 # -----------------------------------------------------------------------------
 
 def main():
-    rows = []
-    with open("data/transactions.csv") as f:
-        for line in f.readlines()[1:]:
-            parts = line.strip().split(",")
-            if len(parts) != 4:
-                continue
-            rows.append(parts)
+    # read CSV
+    text = Path("data/transactions.csv").read_text()
+    rows = parse_csv(text)
 
-    categories = {
-        "STARBUCKS": "food",
-        "DUNKIN": "food",
-        "WHOLEFOODS": "food",
-        "WHOLE FOODS": "food",
-        "SHELL": "gas",
-        "EXXON": "gas",
-        "AMAZON": "shopping",
-        "TARGET": "shopping",
-        "NETFLIX": "entertainment",
-        "SPOTIFY": "entertainment",
-        "HARDWARE": "home",
-    }
+    # read categories config
+    categories = json.loads(Path("data/categories.json").read_text())
 
-    totals = {}
-    for date, vendor, amount, _ in rows:
-        cat = "other"
-        for key, c in categories.items():
-            if key in vendor.upper():
-                cat = c
-        totals[cat] = totals.get(cat, 0.0) + float(amount)
+    # build report
+    totals = build_report(rows, categories)
 
+    # print
     print("=== Expense Report ===")
     for cat, total in sorted(totals.items()):
         print(f"  {cat:<15} ${total:>8.2f}")
